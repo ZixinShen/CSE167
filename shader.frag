@@ -78,7 +78,7 @@ vec3 illumination(pointLight light, vec3 normal, vec3 position, vec3 viewDir) {
 
     // Attenuation
     float distance = length(light.position - position);
-    float attenuation = 1.0f / (1.0f + 0.15 * distance);
+    float attenuation = 1.0f / (1.0f + 0.07 * distance);
     
     ambient *= attenuation;
     diffuse *= attenuation;

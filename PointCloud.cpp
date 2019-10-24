@@ -212,6 +212,7 @@ void PointCloud::draw()
     glDrawElements(GL_TRIANGLES, 3*faceIndices.size(), GL_UNSIGNED_INT, 0);
     // Unbind from the VAO.
     glBindVertexArray(0);
+    
 }
 
 void PointCloud::update()
@@ -238,4 +239,9 @@ void PointCloud::rotate(float angle, glm::vec3 axis)
 void PointCloud::scale(float factor)
 {
     model = glm::scale(glm::vec3(factor, factor, factor)) * model;
+}
+
+void PointCloud::translate(glm::vec3 direction)
+{
+    model = glm::translate(direction) * model; 
 }

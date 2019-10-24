@@ -11,7 +11,10 @@ PointCloud * Window::bunny;
 PointCloud * Window::bear;
 
 // The object currently displaying.
-PointCloud * Window::currentObj; 
+PointCloud * Window::currentObj;
+
+// The light source
+PointCloud * Window::light;
 
 glm::mat4 Window::projection; // Projection matrix.
 
@@ -34,6 +37,9 @@ GLboolean Window::leftButtonDown;
 glm::vec3 Window::currentPosition;
 glm::vec3 Window::lastPosition;
 int Window::colormode = 0;
+glm::vec3 Window::lightColor;
+glm::vec3 Window::lightPosition;
+int Window::mouseMode = 1;
 
 bool Window::initializeProgram() {
 	// Create a shader program with a vertex shader and a fragment shader.
@@ -48,6 +54,7 @@ bool Window::initializeProgram() {
 
 	// Activate the shader program.
 	glUseProgram(program);
+    
 	// Get the locations of uniform variables.
 	projectionLoc = glGetUniformLocation(program, "projection");
 	viewLoc = glGetUniformLocation(program, "view");
@@ -56,8 +63,8 @@ bool Window::initializeProgram() {
     glUniform3fv(glGetUniformLocation(program, "viewPos"),1, glm::value_ptr(eye));
     
     // set the uniform variable lightSource
-    glm::vec3 lightColor = glm::vec3(0.6,0.8,0.4);
-    glm::vec3 lightPosition = glm::vec3(5,7,1);
+    lightColor = glm::vec3(0.7,0.7,0.2);
+    lightPosition = glm::vec3(1,7,1);
     glUniform3fv(glGetUniformLocation(program, "lightSource.color"),1, glm::value_ptr(lightColor));
     glUniform3fv(glGetUniformLocation(program, "lightSource.position"),1, glm::value_ptr(lightPosition));
     glUniform1i(glGetUniformLocation(program, "colormode"), colormode);
@@ -76,6 +83,11 @@ bool Window::initializeObjects()
     
 	// Set cube to be the first to display
 	currentObj = bunny;
+    
+    // Create light source
+    light = new PointCloud("sphere.obj",1);
+    light->scale(0.05);
+    light->translate(lightPosition);
 
 	return true;
 }
@@ -86,6 +98,7 @@ void Window::cleanUp()
     delete bunny;
     delete dragon;
     delete bear;
+    delete light;
 
 	// Delete the shader program.
 	glDeleteProgram(program);
@@ -196,35 +209,49 @@ void Window::displayCallback(GLFWwindow* window)
         diffuse = glm::vec3(0,0,0);
         specular = glm::vec3(0.7,0.7,0.16);
         ambient = glm::vec3(0.21,0.12,0.05);
-        shininess = 1;
+        shininess = 0.1;
     }
     
     if(currentObj == dragon) {
-        //only use diffuse reflection, with zero shininess
-        diffuse = glm::vec3(0.5,0.7,0.6);
+        //only use diffuse reflection, with zero specular reflection
+        diffuse = glm::vec3(0.2,0.7,0.2);
         specular = glm::vec3(0,0,0);
         ambient = glm::vec3(0,0,0);
-        shininess = 0;
+        shininess = 32;
     }
     
     if(currentObj == bear) {
         //have significant diffuse and specular reflection components
-        diffuse = glm::vec3(0.54,0.36,0.78);
-        specular = glm::vec3(0.8,0.75,0.84);
-        ambient = glm::vec3(0.15,0.22,0.13);
-        shininess = 0.25;
+        diffuse = glm::vec3(0.6,0.8,0.78);
+        specular = glm::vec3(0.5,0.7,0.84);
+        ambient = glm::vec3(0.07,0.16,0.13);
+        shininess = 5;
     }
     
+    glUniform3fv(glGetUniformLocation(program, "lightSource.position"),1, glm::value_ptr(lightPosition));
     glUniform3fv(materialDiffuse, 1, glm::value_ptr(diffuse));
     glUniform3fv(materialSpecular, 1, glm::value_ptr(specular));
     glUniform3fv(materialAmbient, 1, glm::value_ptr(ambient));
     glUniform1f(materialShininess, shininess);
-
     
     
 	// Render the object.
 	currentObj->draw();
 
+    //display light source
+    glm::mat4 lightModel = light->getModel();
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(lightModel));
+    diffuse = glm::vec3(0,0,0);
+    specular = diffuse;
+    ambient = lightColor;
+    shininess = 1;
+    glUniform3fv(materialDiffuse, 1, glm::value_ptr(diffuse));
+    glUniform3fv(materialSpecular, 1, glm::value_ptr(specular));
+    glUniform3fv(materialAmbient, 1, glm::value_ptr(ambient));
+    glUniform1f(materialShininess, shininess);
+    light->draw();
+    
+    
 	// Gets events, including input such as keyboard and mouse or window resizing.
 	glfwPollEvents();
 	// Swap buffers.
@@ -273,6 +300,15 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
             }
             glUniform1i(glGetUniformLocation(program, "colormode"), colormode);
             break;
+        case GLFW_KEY_1:
+            mouseMode = 1;
+            break;
+        case GLFW_KEY_2:
+            mouseMode = 2;
+            break;
+        case GLFW_KEY_3:
+            mouseMode = 3;
+            break;
 		default:
 			break;
 		}
@@ -286,16 +322,34 @@ void Window::cursorCallback(GLFWwindow* window, double xpos, double ypos) {
     //if the left button is pressed, update mouse position and modify
     // the model view matrix
     
-    if( leftButtonDown) {
+    if( leftButtonDown ) {
         currentPosition = trackBallMapping(glm::vec2(xpos, ypos));
         
         //calculte rotation angle and axis
         glm::vec3 axis = glm::cross(lastPosition,currentPosition);
-        GLfloat angle = glm::acos(glm::dot(currentPosition, lastPosition));
+        float dotProduct = glm::dot(currentPosition, lastPosition);
+        dotProduct = (dotProduct < -1.0f) ? -1.0f : dotProduct;
+        dotProduct = (dotProduct > 1.0f) ? 1.0f : dotProduct;
+        GLfloat angle = glm::acos(dotProduct);
+        axis = glm::normalize(axis);
         
         // multiply the current transformation matrix with rotation matrix
-        currentObj->rotate(angle, axis);
+        // 3D model will be rotated in mode 1 and 3
+        if(mouseMode == 1 || mouseMode == 3) {
+            currentObj->rotate(angle, axis);
+
+        }
         
+        // light source will rotate in mode 2 and 3
+        if(mouseMode == 2 || mouseMode == 3) {
+            glm::mat4 rotation = glm::rotate(angle,axis);
+            glm::vec4 result =  rotation * glm::vec4(lightPosition,1.0f);
+            glm::vec3 resultPosition = glm::vec3(result.x,result.y,result.z);
+            light->translate(resultPosition - lightPosition);
+            lightPosition = resultPosition;
+            glUniform3fv(glGetUniformLocation(program, "lightSource.position"),1, glm::value_ptr(lightPosition));
+
+        }
         lastPosition = currentPosition;
     } else {
         lastPosition = trackBallMapping(glm::vec2(xpos, ypos));
@@ -341,7 +395,22 @@ void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) 
     // Calculate the scale factor
     float factor = 1.0f + yoffset / height;
     
-    currentObj->scale(factor);
+    // scale 3d object in mode 1 and 3
+    if(mouseMode == 1 || mouseMode == 3) {
+        currentObj->scale(factor);
+    }
+    
+    //move the light source in mode 2 and 3
+    if(mouseMode == 2 || mouseMode == 3) {
+        glm::mat4 scaling = glm::scale(glm::vec3(factor,factor,factor));
+        glm::vec4 result =  scaling * glm::vec4(lightPosition,1.0f);
+        glm::vec3 resultPosition = glm::vec3(result.x,result.y,result.z);
+        light->translate(resultPosition - lightPosition);
+        lightPosition = resultPosition;
+        glUniform3fv(glGetUniformLocation(program, "lightSource.position"),1, glm::value_ptr(lightPosition));
+
+    }
+
     
 }
 

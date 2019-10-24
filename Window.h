@@ -31,6 +31,7 @@ public:
     static PointCloud * bunny;
     static PointCloud * bear;
 	static PointCloud * currentObj;
+    static PointCloud * light;
 	static glm::mat4 projection;
 	static glm::mat4 view;
 	static glm::vec3 eye, center, up;
@@ -39,6 +40,9 @@ public:
     static glm::vec3 lastPosition;
     static glm::vec3 currentPosition;
     static int colormode;
+    static glm::vec3 lightColor;
+    static glm::vec3 lightPosition;
+    static int mouseMode;
 
 	static bool initializeProgram();
 	static bool initializeObjects();
