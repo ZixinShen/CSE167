@@ -209,7 +209,7 @@ void PointCloud::draw()
     // Set point size.
     glPointSize(pointSize);
     // Draw points
-    glDrawElements(GL_TRIANGLES, 3*faceIndices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_LINES, 3*faceIndices.size(), GL_UNSIGNED_INT, 0);
     // Unbind from the VAO.
     glBindVertexArray(0);
     
@@ -244,4 +244,10 @@ void PointCloud::scale(float factor)
 void PointCloud::translate(glm::vec3 direction)
 {
     model = glm::translate(direction) * model; 
+}
+
+float PointCloud::getSphereRadius()
+{
+    float r = (xMax - xMin) / 2.0f;
+    return r;
 }

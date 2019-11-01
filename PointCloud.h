@@ -50,6 +50,7 @@ public:
     void rotate(float angle, glm::vec3 axis);
     void scale(float factor);
     void translate(glm::vec3 direction);
+    float getSphereRadius();
 };
 
 #endif

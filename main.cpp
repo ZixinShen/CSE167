@@ -10,8 +10,8 @@ void setup_callbacks(GLFWwindow* window)
 {
 	// Set the error callback.
 	glfwSetErrorCallback(error_callback);
-	// Set the key callback.
-	glfwSetKeyCallback(window, Window::keyCallback);
+    // Set the key callback.
+    glfwSetKeyCallback(window, Window::keyCallback);
 	// Set the window resize callback.
 	glfwSetWindowSizeCallback(window, Window::resizeCallback);
     // Set the cursor position callback

@@ -26,6 +26,8 @@ uniform Material material;
 uniform vec3 viewPos;
 uniform int colormode;
 
+uniform vec3 color;
+
 // You can output many things. The first vec4 type output determines the color of the fragment
 out vec4 fragColor;
 
@@ -39,11 +41,9 @@ void main()
     vec3 normal = normalize(normalOutput);
     
     // normal coloring
-    if(colormode == 1) {
-        fragColor = vec4(normalColoring(normal),1.0f);
-    } else {
-        fragColor = vec4(illumination(lightSource,normal,posOutput,viewDir),1.0f);
-    }
+    fragColor = vec4(color,1.0f);
+
+//    fragColor = vec4(normalColoring(normal),1.0f);
 }
 
 //normal coloring
